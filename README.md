@@ -16,6 +16,7 @@ All contracts are source-verified on the block explorers (solc 0.8.28, optimizer
 | Arbitrum | [0x7129604E5295D64ec4b6d247BC2538F2FcC3868d](https://arbiscan.io/address/0x7129604E5295D64ec4b6d247BC2538F2FcC3868d#code) | [0x43d7CaD4b8F6F65C5f1c113dDCD8B25229aa15D6](https://arbiscan.io/address/0x43d7CaD4b8F6F65C5f1c113dDCD8B25229aa15D6#code) |
 | HyperEVM | [0x7129604E5295D64ec4b6d247BC2538F2FcC3868d](https://hyperevmscan.io/address/0x7129604E5295D64ec4b6d247BC2538F2FcC3868d#code) | [0x43d7CaD4b8F6F65C5f1c113dDCD8B25229aa15D6](https://hyperevmscan.io/address/0x43d7CaD4b8F6F65C5f1c113dDCD8B25229aa15D6#code) |
 | Robinhood Chain | [0x7129604E5295D64ec4b6d247BC2538F2FcC3868d](https://robinhoodchain.blockscout.com/address/0x7129604E5295D64ec4b6d247BC2538F2FcC3868d?tab=contract) | [0xCcEf1FE03257025f1081A563fEF9B19951186015](https://robinhoodchain.blockscout.com/address/0xCcEf1FE03257025f1081A563fEF9B19951186015?tab=contract) |
+| Polygon | [0x7129604E5295D64ec4b6d247BC2538F2FcC3868d](https://polygonscan.com/address/0x7129604E5295D64ec4b6d247BC2538F2FcC3868d#code) | [0xbE72cf7ECBeFf0CFE4E56B51f468Ad8C857F7FeA](https://polygonscan.com/address/0xbE72cf7ECBeFf0CFE4E56B51f468Ad8C857F7FeA#code) (SwapRelay2) |
 
 Roles, the same on every chain (also in [deployments.json](deployments.json)):
 
@@ -38,7 +39,13 @@ deadline and salt. In one transaction the contract pulls the amount, pays the fe
 fixed Uniswap v3 router (HyperSwap on HyperEVM) and pays the output to the sender, never anywhere else.
 Below the signed minimum the whole transaction reverts.
 
-Both contracts:
+**SwapRelay2** (Polygon) is SwapRelay plus `swapWithPermit`, for tokens that have an EIP-2612 permit but
+no EIP-3009, such as USDT0 and the bridged USDC.e on Polygon. The user signs a permit for exactly the amount,
+payable to the contract, and an EIP-712 signature of the swap itself (domain `SwapRelay`, version `2`). The
+contract checks that signature before it uses the permit, so the permit alone moves nothing. Everything
+else, including `swapWithAuthorization`, works as in SwapRelay. The chains deployed earlier keep SwapRelay.
+
+All three contracts:
 
 - accept a submission only from an allowed relayer, so a signature cannot be front-run by others,
 - refuse a transfer id that was used before, an expired deadline, and a fee of the whole amount,
@@ -47,7 +54,7 @@ Both contracts:
 
 ## What the owner can and cannot do
 
-The owner can pause both contracts, add or remove relayers and accepted tokens, change the fee wallet,
+The owner can pause the contracts, add or remove relayers and accepted tokens, change the fee wallet,
 and recover tokens sent to a contract by mistake. The owner cannot move user funds, change a signed
 transfer or swap, or change the swap router (it is immutable). Ownership uses OpenZeppelin `Ownable2Step`.
 
@@ -59,7 +66,8 @@ npm test
 ```
 
 The tests start a local Hardhat node and check what a signature allows and what it does not: wrong
-recipient, higher fee, lower minimum, other sender, replay, other submitter, pause. Nothing reaches a
+recipient, higher fee, lower minimum, other sender, replay, other submitter, pause, and for SwapRelay2 a
+permit token with a salt in its domain, like USDT0 on Polygon. Nothing reaches a
 public network.
 
 ## Security

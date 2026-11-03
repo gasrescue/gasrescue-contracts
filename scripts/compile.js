@@ -8,7 +8,9 @@ const root = path.resolve(__dirname, '..');
 const sources = {
   'contracts/GasRelay.sol': ['GasRelay'],
   'contracts/SwapRelay.sol': ['SwapRelay'],
+  'contracts/SwapRelay2.sol': ['SwapRelay2'],
   'contracts/test/SimToken.sol': ['SimToken'],
+  'contracts/test/SimSaltToken.sol': ['SimSaltToken'],
   'contracts/test/SimSwap.sol': ['SimWrapped', 'SimRouter'],
 };
 

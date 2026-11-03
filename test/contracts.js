@@ -1,4 +1,4 @@
-// Local tests of GasRelay and SwapRelay on a Hardhat node at 127.0.0.1: what a signature allows and
+// Local tests of GasRelay, SwapRelay and SwapRelay2 on a Hardhat node at 127.0.0.1: what a signature allows and
 // what it does not. All keys are random and live only in memory; nothing reaches a public network.
 //   npm test
 const fs = require('fs');
@@ -49,6 +49,19 @@ const AUTH_TYPES = {
   ReceiveWithAuthorization: [
     { name: 'from', type: 'address' }, { name: 'to', type: 'address' }, { name: 'value', type: 'uint256' },
     { name: 'validAfter', type: 'uint256' }, { name: 'validBefore', type: 'uint256' }, { name: 'nonce', type: 'bytes32' },
+  ],
+};
+const PERMIT_TYPES = {
+  Permit: [
+    { name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }, { name: 'value', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' }, { name: 'deadline', type: 'uint256' },
+  ],
+};
+const SWAP_TYPES = {
+  Swap: [
+    { name: 'sender', type: 'address' }, { name: 'tokenIn', type: 'address' }, { name: 'tokenOut', type: 'address' },
+    { name: 'poolFee', type: 'uint24' }, { name: 'amount', type: 'uint256' }, { name: 'fee', type: 'uint256' },
+    { name: 'minOut', type: 'uint256' }, { name: 'deadline', type: 'uint256' }, { name: 'salt', type: 'bytes32' },
   ],
 };
 
@@ -125,6 +138,37 @@ async function main() {
     check('SwapRelay: the contract keeps nothing', (await usdc.balanceOf(swapAddress)) === 0n && (await weth.balanceOf(swapAddress)) === 0n && (await provider.getBalance(swapAddress)) === 0n);
     check('SwapRelay: the same swap cannot run twice', (await revertOf(swapAs(relayer, swap))) === 'AlreadyUsed');
     check('SwapRelay: plain ETH sent to it is refused', (await revertOf(stranger.sendTransaction({ to: swapAddress, value: 1n }))) !== null);
+
+    // SwapRelay2 (Polygon): SwapRelay plus permit tokens. A token like USDT0 on Polygon has only a permit,
+    // and its EIP-712 domain carries the chain id as a salt. carol signs a permit and the swap itself.
+    const usdt0 = await deploy('SimSaltToken', ['USDT0']);
+    const usdt0Address = await usdt0.getAddress();
+    const swapRelay2 = await deploy('SwapRelay2', [owner.address, relayer.address, feeWallet.address, routerAddress, wethAddress]);
+    const swap2Address = await swapRelay2.getAddress();
+    for (const token of [usdcAddress, usdt0Address, wethAddress]) await (await swapRelay2.setToken(token, true)).wait();
+    await (await router.setRate(usdt0Address, wethAddress, 500, ETH_PER_USD)).wait();
+    const carol = wallet();
+    await (await usdt0.mint(carol.address, units('50'))).wait();
+    const usdt0Domain = { name: 'USDT0', version: '1', verifyingContract: usdt0Address, salt: ethers.zeroPadValue(ethers.toBeHex(31337), 32) };
+    const swap2Domain = { name: 'SwapRelay', version: '2', chainId: 31337, verifyingContract: swap2Address };
+    const permitSwap = { sender: carol.address, tokenIn: usdt0Address, tokenOut: wethAddress, poolFee: 500, amount: units('20'), fee: units('0.25'), minOut: (units('19.75') * ETH_PER_USD) / 1_000_000n, deadline, salt: ethers.hexlify(ethers.randomBytes(32)) };
+    check('SwapRelay2: the swap id is the EIP-712 hash of the swap (version 2)', (await swapRelay2.swapId(permitSwap)) === ethers.TypedDataEncoder.hash(swap2Domain, SWAP_TYPES, permitSwap));
+    const permitSig = ethers.Signature.from(await carol.signTypedData(usdt0Domain, PERMIT_TYPES, { owner: carol.address, spender: swap2Address, value: permitSwap.amount, nonce: 0n, deadline }));
+    const orderSig = await carol.signTypedData(swap2Domain, SWAP_TYPES, permitSwap);
+    const permitAs = (signer, s, signature = orderSig) => swapRelay2.connect(signer).swapWithPermit.staticCall(s, permitSig.v, permitSig.r, permitSig.s, signature);
+    check('SwapRelay2: only the relayer may submit', (await revertOf(permitAs(stranger, permitSwap))) === 'NotRelayer');
+    check('SwapRelay2: a swap signed by someone else is refused', (await revertOf(permitAs(relayer, permitSwap, await stranger.signTypedData(swap2Domain, SWAP_TYPES, permitSwap)))) === 'BadSwapSignature');
+    check('SwapRelay2: a lower minimum than signed is refused', (await revertOf(permitAs(relayer, { ...permitSwap, minOut: 1n }))) === 'BadSwapSignature');
+    check('SwapRelay2: a higher fee than signed is refused', (await revertOf(permitAs(relayer, { ...permitSwap, fee: permitSwap.fee + 1n }))) === 'BadSwapSignature');
+    await (await swapRelay2.connect(relayer).swapWithPermit(permitSwap, permitSig.v, permitSig.r, permitSig.s, orderSig)).wait();
+    check('SwapRelay2: carol gets the ETH, paid exactly 20 USDT0, the fee wallet got 0.25', (await provider.getBalance(carol.address)) === permitSwap.minOut
+      && (await usdt0.balanceOf(carol.address)) === units('30') && (await usdt0.balanceOf(feeWallet.address)) === units('0.25'));
+    check('SwapRelay2: no allowance and no balance stay behind', (await usdt0.allowance(carol.address, swap2Address)) === 0n && (await usdt0.balanceOf(swap2Address)) === 0n && (await provider.getBalance(swap2Address)) === 0n);
+    check('SwapRelay2: the same swap cannot run twice', (await revertOf(permitAs(relayer, permitSwap))) === 'AlreadyUsed');
+    const authSwap = { ...swap, amount: units('10'), minOut: (units('9.75') * ETH_PER_USD) / 1_000_000n, salt: ethers.hexlify(ethers.randomBytes(32)) };
+    const authSig = ethers.Signature.from(await alice.signTypedData(usdcDomain, AUTH_TYPES, { from: alice.address, to: swap2Address, value: authSwap.amount, validAfter: 0n, validBefore: deadline, nonce: await swapRelay2.swapId(authSwap) }));
+    await (await swapRelay2.connect(relayer).swapWithAuthorization(authSwap, authSig.v, authSig.r, authSig.s)).wait();
+    check('SwapRelay2: EIP-3009 tokens still swap with one authorization', (await usdc.balanceOf(alice.address)) === units('45'));
   } finally {
     node.stop();
   }

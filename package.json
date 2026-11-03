@@ -2,7 +2,7 @@
   "name": "gasrescue-contracts",
   "version": "1.0.0",
   "private": true,
-  "description": "Smart contracts of gasrescue.io: GasRelay (send stablecoins without gas) and SwapRelay (swap stablecoins into the gas coin without gas).",
+  "description": "Smart contracts of gasrescue.io: GasRelay (send stablecoins without gas), SwapRelay and SwapRelay2 (swap stablecoins into the gas coin without gas).",
   "license": "MIT",
   "homepage": "https://gasrescue.io",
   "scripts": {
