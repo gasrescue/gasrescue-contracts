@@ -1,0 +1,18 @@
+{
+  "name": "gasrescue-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart contracts of gasrescue.io: GasRelay (send stablecoins without gas) and SwapRelay (swap stablecoins into the gas coin without gas).",
+  "license": "MIT",
+  "homepage": "https://gasrescue.io",
+  "scripts": {
+    "compile": "node scripts/compile.js",
+    "test": "node scripts/compile.js && node test/contracts.js"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "5.4.0",
+    "ethers": "6.17.0",
+    "hardhat": "2.29.1",
+    "solc": "0.8.28"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "base": {
+    "gasRelay": "0x7129604E5295D64ec4b6d247BC2538F2FcC3868d",
+    "swapRelay": "0xCcEf1FE03257025f1081A563fEF9B19951186015",
+    "owner": "0x6333470B09437f978bC819121601D852fAab171A",
+    "relayer": "0x2bDfF499d21EA25a7f93e26866027d9aC4FbeE6B",
+    "feeRecipient": "0x9Bca418539A69aF50D0d857B90deC3B345f105B0",
+    "deployedAt": "2026-10-30T17:16:41.451Z",
+    "swapDeployedAt": "2026-11-02T14:31:34.112Z"
+  },
+  "hyperevm": {
+    "gasRelay": "0x7129604E5295D64ec4b6d247BC2538F2FcC3868d",
+    "swapRelay": "0x43d7CaD4b8F6F65C5f1c113dDCD8B25229aa15D6",
+    "owner": "0x6333470B09437f978bC819121601D852fAab171A",
+    "relayer": "0x2bDfF499d21EA25a7f93e26866027d9aC4FbeE6B",
+    "feeRecipient": "0x9Bca418539A69aF50D0d857B90deC3B345f105B0",
+    "deployedAt": "2026-10-30T18:38:56.636Z",
+    "swapDeployedAt": "2026-11-02T14:31:56.739Z"
+  },
+  "arbitrum": {
+    "gasRelay": "0x7129604E5295D64ec4b6d247BC2538F2FcC3868d",
+    "swapRelay": "0x43d7CaD4b8F6F65C5f1c113dDCD8B25229aa15D6",
+    "owner": "0x6333470B09437f978bC819121601D852fAab171A",
+    "relayer": "0x2bDfF499d21EA25a7f93e26866027d9aC4FbeE6B",
+    "feeRecipient": "0x9Bca418539A69aF50D0d857B90deC3B345f105B0",
+    "deployedAt": "2026-10-31T09:18:27.524Z",
+    "swapDeployedAt": "2026-11-02T14:26:34.493Z"
+  },
+  "ethereum": {
+    "gasRelay": "0x7129604E5295D64ec4b6d247BC2538F2FcC3868d",
+    "swapRelay": "0xCcEf1FE03257025f1081A563fEF9B19951186015",
+    "owner": "0x6333470B09437f978bC819121601D852fAab171A",
+    "relayer": "0x2bDfF499d21EA25a7f93e26866027d9aC4FbeE6B",
+    "feeRecipient": "0x9Bca418539A69aF50D0d857B90deC3B345f105B0",
+    "deployedAt": "2026-10-31T09:19:15.747Z",
+    "swapDeployedAt": "2026-11-02T14:28:04.357Z"
+  },
+  "robinhood": {
+    "gasRelay": "0x7129604E5295D64ec4b6d247BC2538F2FcC3868d",
+    "swapRelay": "0xCcEf1FE03257025f1081A563fEF9B19951186015",
+    "owner": "0x6333470B09437f978bC819121601D852fAab171A",
+    "relayer": "0x2bDfF499d21EA25a7f93e26866027d9aC4FbeE6B",
+    "feeRecipient": "0x9Bca418539A69aF50D0d857B90deC3B345f105B0",
+    "deployedAt": "2026-10-31T10:33:25.796Z",
+    "swapDeployedAt": "2026-11-02T14:26:59.061Z"
+  }
+}
